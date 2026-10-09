@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReadEase - Reading Made Easy</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f5ff;
+            margin: 0;
+            padding: 20px;
+            color: #26334d;
+        }
+
+        header {
+            text-align: center;
+            background: #5267c9;
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 25px auto;
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px #dce3f0;
+        }
+
+        textarea {
+            width: 100%;
+            height: 180px;
+            padding: 12px;
+            box-sizing: border-box;
+            font-size: 18px;
+            line-height: 1.8;
+            border: 2px solid #cbd5f0;
+            border-radius: 10px;
+            resize: vertical;
+        }
+
+        button, select, input {
+            padding: 12px;
+            margin: 6px 4px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        button {
+            background: #5267c9;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #3549a5;
+        }
+
+        .settings {
+            margin-top: 25px;
+            padding: 15px;
+            background: #f4f6ff;
+            border-radius: 10px;
+        }
+
+        #message {
+            color: #3549a5;
+            font-weight: bold;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 25px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>📖 ReadEase</h1>
+        <p>Reading made easy for every student</p>
+        <p>English • தமிழ் • Tanglish</p>
+    </header>
+
+    <main class="container">
+        <h2>Smart Reader</h2>
+        <p>Paste your text below and let ReadEase read it aloud.</p>
+
+        <textarea id="readerText"
+            placeholder="Paste or type your text here..."></textarea>
+
+        <br>
+
+        <label for="language">Reading language:</label>
+
+        <select id="language">
+            <option value="en-US">English</option>
+            <option value="ta-IN">Tamil</option>
+        </select>
+
+        <br>
+
+        <button onclick="readText()">🔊 Read Aloud</button>
+        <button onclick="pauseText()">⏸ Pause / Resume</button>
+        <button onclick="stopText()">⏹ Stop</button>
+
+        <p id="message" role="status" aria-live="polite"></p>
+
+        <section class="settings">
+            <h3>Reading Preferences</h3>
+
+            <button onclick="changeSize(2)">A+ Increase Text</button>
+            <button onclick="changeSize(-2)">A- Decrease Text</button>
+            <button onclick="changeSpacing()">Change Letter Spacing</button>
+            <button onclick="changeBackground()">Change Background</button>
+            <button onclick="resetStyle()">Reset Reading Style</button>
+        </section>
+
+        <section class="settings">
+            <h3>CSE Tech Dictionary</h3>
+
+            <input id="wordInput"
+                type="text"
+                placeholder="Try DBMS, SQL, CPU...">
+
+            <button onclick="searchWord()">Find Meaning</button>
+
+            <p id="meaning" aria-live="polite"></p>
+        </section>
+
+        <section class="settings">
+            <h3>Exam Mode</h3>
+            <p>Reduce distractions and focus on your reading.</p>
+            <button onclick="toggleExamMode()">Enter / Exit Exam Mode</button>
+        </section>
+
+        <footer>
+            <p>ReadEase | Learn at your own pace 💙</p>
+        </footer>
+    </main>
+
+    <script>
+        let textSize = 18;
+        let spaced = false;
+        let alternateBackground = false;
+        let examMode = false;
+
+        function readText() {
+            const text = document.getElementById("readerText").value;
+            const language = document.getElementById("language").value;
+            const message = document.getElementById("message");
+
+            if (!text.trim()) {
+                message.textContent = "Please enter some text first.";
+                return;
+            }
+
+            if (!("speechSynthesis" in window)) {
+                message.textContent = "Speech is not supported in this browser.";
+                return;
+            }
+
+            window.speechSynthesis.cancel();
+
+            const speech = new SpeechSynthesisUtterance(text);
+            speech.lang = language;
+
+            speech.onstart = function () {
+                message.textContent = "ReadEase is reading your text...";
+            };
+
+            speech.onend = function () {
+                message.textContent = "Reading completed!";
+            };
+
+            speech.onerror = function () {
+                message.textContent = "Speech could not start. Please try again.";
+            };
+
+            window.speechSynthesis.speak(speech);
+        }
+
+        function pauseText() {
+            const speech = window.speechSynthesis;
+
+            if (speech.speaking && speech.paused) {
+                speech.resume();
+                document.getElementById("message").textContent = "Reading resumed.";
+            } else if (speech.speaking) {
+                speech.pause();
+                document.getElementById("message").textContent = "Reading paused.";
+            } else {
+                document.getElementById("message").textContent = "Start reading first.";
+            }
+        }
+
+        function stopText() {
+            window.speechSynthesis.cancel();
+            document.getElementById("message").textContent = "Reading stopped.";
+        }
+
+        function changeSize(amount) {
+            textSize += amount;
+            textSize = Math.max(12, Math.min(36, textSize));
+            document.getElementById("readerText").style.fontSize = textSize + "px";
+        }
+
+        function changeSpacing() {
+            spaced = !spaced;
+            document.getElementById("readerText").style.letterSpacing =
+                spaced ? "2px" : "normal";
+            document.getElementById("readerText").style.lineHeight =
+                spaced ? "2.2" : "1.8";
+        }
+
+        function changeBackground() {
+            alternateBackground = !alternateBackground;
+            document.body.style.background =
+                alternateBackground ? "#fff5dc" : "#f0f5ff";
+            document.getElementById("readerText").style.background =
+                alternateBackground ? "#fffaf0" : "#ffffff";
+        }
+
+        function resetStyle() {
+            textSize = 18;
+            spaced = false;
+            alternateBackground = false;
+
+            document.getElementById("readerText").style.fontSize = "18px";
+            document.getElementById("readerText").style.letterSpacing = "normal";
+            document.getElementById("readerText").style.lineHeight = "1.8";
+            document.getElementById("readerText").style.background = "#ffffff";
+            document.body.style.background = "#f0f5ff";
+        }
+
+        function searchWord() {
+            const word = document.getElementById("wordInput")
+                .value.trim().toUpperCase();
+
+            const dictionary = {
+                "DBMS": "Database Management System - software used to manage databases.",
+                "SQL": "Structured Query Language - used to work with relational databases.",
+                "CPU": "Central Processing Unit - executes instructions in a computer.",
+                "RAM": "Random Access Memory - temporary working memory in a computer.",
+                "HTML": "HyperText Markup Language - used to structure web pages.",
+                "CSS": "Cascading Style Sheets - used to style web pages.",
+                "AI": "Artificial Intelligence - technology that performs tasks requiring human-like intelligence.",
+                "OS": "Operating System - software that manages computer hardware and applications."
+            };
+
+            document.getElementById("meaning").textContent =
+                dictionary[word] || "Word not found. Try DBMS, SQL, CPU, RAM, HTML, CSS, AI or OS.";
+        }
+
+        function toggleExamMode() {
+            examMode = !examMode;
+            document.body.style.background = examMode ? "#ffffff" : "#f0f5ff";
+
+            document.querySelector("header").style.display =
+                examMode ? "none" : "block";
+
+            document.querySelectorAll(".settings").forEach(function (section) {
+                section.style.display = examMode ? "none" : "block";
+            });
+
+            document.getElementById("message").textContent =
+                examMode ? "Exam Mode enabled." : "Exam Mode disabled.";
+        }
+    </script>
+
+</body>
+</html>
