@@ -151,127 +151,98 @@
         let alternateBackground = false;
         let examMode = false;
 
-        function readText() {
-            const text = document.getElementById("readerText").value;
-            const language = document.getElementById("language").value;
-            const message = document.getElementById("message");
+        
+function readText() {
+    const text = document.getElementById("readerText").value.trim();
+    const language = document.getElementById("language").value;
+    const message = document.getElementById("message");
+    const synth = window.speechSynthesis;
 
-            if (!text.trim()) {
-                message.textContent = "Please enter some text first.";
+    if (!text) {
+        message.textContent = "Please enter some text first.";
+        return;
+    }
+
+    if (!synth || !("SpeechSynthesisUtterance" in window)) {
+        message.textContent = "Speech is not supported in this browser.";
+        return;
+    }
+
+    synth.cancel();
+
+    function speakNow() {
+        const voices = synth.getVoices();
+        const speech = new SpeechSynthesisUtterance(text);
+
+        speech.lang = language;
+
+        if (language === "ta-IN") {
+            const tamilVoice = voices.find(voice =>
+                voice.lang.toLowerCase() === "ta-in"
+            ) || voices.find(voice =>
+                voice.lang.toLowerCase().startsWith("ta")
+            );
+
+            if (!tamilVoice) {
+                message.textContent =
+                    "No Tamil voice is available in your browser. Please enable a Tamil speech voice on your device.";
                 return;
             }
 
-            if (!("speechSynthesis" in window)) {
-                message.textContent = "Speech is not supported in this browser.";
-                return;
-            }
+            speech.voice = tamilVoice;
+        } else {
+            const englishVoice = voices.find(voice =>
+                voice.lang.toLowerCase() === "en-us"
+            ) || voices.find(voice =>
+                voice.lang.toLowerCase().startsWith("en")
+            );
 
-            window.speechSynthesis.cancel();
-
-            const speech = new SpeechSynthesisUtterance(text);
-            speech.lang = language;
-
-            speech.onstart = function () {
-                message.textContent = "ReadEase is reading your text...";
-            };
-
-            speech.onend = function () {
-                message.textContent = "Reading completed!";
-            };
-
-            speech.onerror = function () {
-                message.textContent = "Speech could not start. Please try again.";
-            };
-
-            window.speechSynthesis.speak(speech);
-        }
-
-        function pauseText() {
-            const speech = window.speechSynthesis;
-
-            if (speech.speaking && speech.paused) {
-                speech.resume();
-                document.getElementById("message").textContent = "Reading resumed.";
-            } else if (speech.speaking) {
-                speech.pause();
-                document.getElementById("message").textContent = "Reading paused.";
-            } else {
-                document.getElementById("message").textContent = "Start reading first.";
+            if (englishVoice) {
+                speech.voice = englishVoice;
             }
         }
 
-        function stopText() {
-            window.speechSynthesis.cancel();
-            document.getElementById("message").textContent = "Reading stopped.";
-        }
+        speech.onstart = () => {
+            message.textContent = "ReadEase is reading your text...";
+        };
 
-        function changeSize(amount) {
-            textSize += amount;
-            textSize = Math.max(12, Math.min(36, textSize));
-            document.getElementById("readerText").style.fontSize = textSize + "px";
-        }
+        speech.onend = () => {
+            message.textContent = "Reading completed!";
+        };
 
-        function changeSpacing() {
-            spaced = !spaced;
-            document.getElementById("readerText").style.letterSpacing =
-                spaced ? "2px" : "normal";
-            document.getElementById("readerText").style.lineHeight =
-                spaced ? "2.2" : "1.8";
-        }
+        speech.onerror = (event) => {
+            message.textContent =
+                "Speech error: " + event.error +
+                ". Please check your speech settings.";
+        };
 
-        function changeBackground() {
-            alternateBackground = !alternateBackground;
-            document.body.style.background =
-                alternateBackground ? "#fff5dc" : "#f0f5ff";
-            document.getElementById("readerText").style.background =
-                alternateBackground ? "#fffaf0" : "#ffffff";
-        }
+        synth.speak(speech);
+    }
 
-        function resetStyle() {
-            textSize = 18;
-            spaced = false;
-            alternateBackground = false;
+    const voices = synth.getVoices();
 
-            document.getElementById("readerText").style.fontSize = "18px";
-            document.getElementById("readerText").style.letterSpacing = "normal";
-            document.getElementById("readerText").style.lineHeight = "1.8";
-            document.getElementById("readerText").style.background = "#ffffff";
-            document.body.style.background = "#f0f5ff";
-        }
+    if (voices.length > 0) {
+        speakNow();
+    } else {
+        message.textContent = "Loading speech voices...";
 
-        function searchWord() {
-            const word = document.getElementById("wordInput")
-                .value.trim().toUpperCase();
+        let attempts = 0;
 
-            const dictionary = {
-                "DBMS": "Database Management System - software used to manage databases.",
-                "SQL": "Structured Query Language - used to work with relational databases.",
-                "CPU": "Central Processing Unit - executes instructions in a computer.",
-                "RAM": "Random Access Memory - temporary working memory in a computer.",
-                "HTML": "HyperText Markup Language - used to structure web pages.",
-                "CSS": "Cascading Style Sheets - used to style web pages.",
-                "AI": "Artificial Intelligence - technology that performs tasks requiring human-like intelligence.",
-                "OS": "Operating System - software that manages computer hardware and applications."
-            };
+        const checkVoices = setInterval(() => {
+            attempts++;
 
-            document.getElementById("meaning").textContent =
-                dictionary[word] || "Word not found. Try DBMS, SQL, CPU, RAM, HTML, CSS, AI or OS.";
-        }
+            if (synth.getVoices().length > 0) {
+                clearInterval(checkVoices);
+                speakNow();
+            } else if (attempts >= 10) {
+                clearInterval(checkVoices);
+                message.textContent =
+                    "Speech voices are unavailable. Please reopen your browser and try again.";
+            }
+        }, 300);
+    }
+}
 
-        function toggleExamMode() {
-            examMode = !examMode;
-            document.body.style.background = examMode ? "#ffffff" : "#f0f5ff";
-
-            document.querySelector("header").style.display =
-                examMode ? "none" : "block";
-
-            document.querySelectorAll(".settings").forEach(function (section) {
-                section.style.display = examMode ? "none" : "block";
-            });
-
-            document.getElementById("message").textContent =
-                examMode ? "Exam Mode enabled." : "Exam Mode disabled.";
-        }
     </script>
 
 </body>
